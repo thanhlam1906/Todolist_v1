@@ -5,8 +5,12 @@ import {
   getAllTasks,
   updateTask,
 } from "../controllers/tasksControllers.js";
+import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
+
+// Tất cả routes đều yêu cầu xác thực
+router.use(authMiddleware);
 
 router.get("/", getAllTasks);
 

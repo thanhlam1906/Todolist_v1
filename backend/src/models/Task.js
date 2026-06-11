@@ -7,6 +7,11 @@ const taskSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     status: {
       type: String,
       enum: ["active", "complete"],
@@ -15,6 +20,20 @@ const taskSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
       default: null,
+    },
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      default: null,
+    },
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high", "urgent"],
+      default: "medium",
     },
   },
   {

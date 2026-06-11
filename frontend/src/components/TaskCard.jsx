@@ -2,14 +2,36 @@ import React, { useState } from "react";
 import { Card } from "./ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Calendar, CheckCircle2, Circle, SquarePen, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  Circle,
+  SquarePen,
+  Trash2,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
 import { Input } from "./ui/input";
 import api from "@/lib/axios";
 import { toast } from "sonner";
+import CategoryBadge from "./CategoryBadge";
+import { priorityConfig } from "@/lib/data";
 
 const TaskCard = ({ task, index, handleTaskChanged }) => {
   const [isEditting, setIsEditting] = useState(false);
   const [updateTaskTitle, setUpdateTaskTitle] = useState(task.title || "");
+
+  // Deadline logic
+  const now = new Date();
+  const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+  const isOverdue = dueDate && dueDate < now && task.status !== "complete";
+  const isDueSoon =
+    dueDate &&
+    !isOverdue &&
+    dueDate - now < 24 * 60 * 60 * 1000 &&
+    task.status !== "complete";
+
+  const pConfig = priorityConfig[task.priority] || priorityConfig.medium;
 
   const deleteTask = async (taskId) => {
     try {
@@ -70,7 +92,12 @@ const TaskCard = ({ task, index, handleTaskChanged }) => {
     <Card
       className={cn(
         "p-4 bg-gradient-card border-0 shadow-custom-md hover:shadow-custom-lg transition-all duration-200 animate-fade-in group",
-        task.status === "complete" && "opacity-75"
+        task.status === "complete" && "opacity-75",
+        isOverdue && "border-l-4 border-l-red-500",
+        isDueSoon && "border-l-4 border-l-yellow-500",
+        task.priority === "urgent" &&
+          task.status !== "complete" &&
+          "ring-1 ring-red-500/20"
       )}
       style={{ animationDelay: `${index * 50}ms` }}
     >
@@ -122,21 +149,64 @@ const TaskCard = ({ task, index, handleTaskChanged }) => {
             </p>
           )}
 
-          {/* ngày tạo & ngày hoàn thành */}
-          <div className="flex items-center gap-2 mt-1">
-            <Calendar className="size-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              {new Date(task.createdAt).toLocaleString()}
+          {/* Meta info row */}
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            {/* Priority badge */}
+            <span
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+              style={{
+                backgroundColor: `${pConfig.color}18`,
+                color: pConfig.color,
+              }}
+            >
+              {pConfig.icon} {pConfig.label}
             </span>
-            {task.completedAt && (
-              <>
-                <span className="text-xs text-muted-foreground"> - </span>
-                <Calendar className="size-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {new Date(task.completedAt).toLocaleString()}
+
+            {/* Created date */}
+            <div className="flex items-center gap-1">
+              <Calendar className="size-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {new Date(task.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+
+            {/* Due date */}
+            {dueDate && (
+              <div
+                className={cn(
+                  "flex items-center gap-1 text-xs",
+                  isOverdue && "text-red-500 font-medium",
+                  isDueSoon && "text-yellow-600 font-medium",
+                  !isOverdue && !isDueSoon && "text-muted-foreground"
+                )}
+              >
+                {isOverdue ? (
+                  <AlertTriangle className="size-3" />
+                ) : (
+                  <Clock className="size-3" />
+                )}
+                <span>
+                  {isOverdue
+                    ? "Quá hạn"
+                    : isDueSoon
+                    ? "Sắp hết hạn"
+                    : dueDate.toLocaleDateString()}
                 </span>
-              </>
+              </div>
             )}
+
+            {/* Completed date */}
+            {task.completedAt && (
+              <div className="flex items-center gap-1">
+                <CheckCircle2 className="size-3 text-success" />
+                <span className="text-xs text-success">
+                  {new Date(task.completedAt).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+
+            {/* Category */}
+            {task.category && <CategoryBadge category={task.category} />}
           </div>
         </div>
 

@@ -1,7 +1,10 @@
 import AddTask from "@/components/AddTask";
+import CategoryFilter from "@/components/CategoryFilter";
 import DateTimeFilter from "@/components/DateTimeFilter";
 import Footer from "@/components/Footer";
 import { Header } from "@/components/Header";
+import SearchBar from "@/components/SearchBar";
+import SortOptions from "@/components/SortOptions";
 import StatsAndFilters from "@/components/StatsAndFilters";
 import TaskList from "@/components/TaskList";
 import TaskListPagination from "@/components/TaskListPagination";
@@ -17,19 +20,40 @@ const HomePage = () => {
   const [filter, setFilter] = useState("all");
   const [dateQuery, setDateQuery] = useState("today");
   const [page, setPage] = useState(1);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     fetchTasks();
-  }, [dateQuery]);
+  }, [dateQuery, selectedCategory, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
     setPage(1);
-  }, [filter, dateQuery]);
+  }, [filter, dateQuery, selectedCategory, searchQuery, sortBy, sortOrder]);
 
-  // logic
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/categories");
+      setCategories(res.data);
+    } catch (error) {
+      console.error("Lỗi khi tải danh mục:", error);
+    }
+  };
+
   const fetchTasks = async () => {
     try {
-      const res = await api.get(`/tasks?filter=${dateQuery}`);
+      let url = `/tasks?filter=${dateQuery}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+      if (selectedCategory) url += `&category=${selectedCategory}`;
+      if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery)}`;
+
+      const res = await api.get(url);
       setTaskBuffer(res.data.tasks);
       setActiveTaskCount(res.data.activeCount);
       setCompleteTaskCount(res.data.completeCount);
@@ -41,6 +65,7 @@ const HomePage = () => {
 
   const handleTaskChanged = () => {
     fetchTasks();
+    fetchCategories();
   };
 
   const handleNext = () => {
@@ -57,6 +82,11 @@ const HomePage = () => {
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
+  };
+
+  const handleSortChange = (field, order) => {
+    setSortBy(field);
+    setSortOrder(order);
   };
 
   // biến
@@ -76,14 +106,14 @@ const HomePage = () => {
     page * visibleTaskLimit
   );
 
-  if (visibleTasks.length === 0) {
+  if (visibleTasks.length === 0 && page > 1) {
     handlePrev();
   }
 
   const totalPages = Math.ceil(filteredTasks.length / visibleTaskLimit);
 
   return (
-    <div className="min-h-screen w-full bg-[#fefcff] relative">
+    <div className="min-h-screen w-full bg-background relative">
       {/* Dreamy Sky Pink Glow */}
       <div
         className="absolute inset-0 z-0"
@@ -101,7 +131,31 @@ const HomePage = () => {
           <Header />
 
           {/* Tạo Nhiệm Vụ */}
-          <AddTask handleNewTaskAdded={handleTaskChanged} />
+          <AddTask
+            handleNewTaskAdded={handleTaskChanged}
+            categories={categories}
+          />
+
+          {/* Tìm kiếm + Sắp xếp */}
+          <div className="flex gap-3 items-center">
+            <div className="flex-1">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+            <SortOptions
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={handleSortChange}
+            />
+          </div>
+
+          {/* Category Filter */}
+          {categories.length > 0 && (
+            <CategoryFilter
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          )}
 
           {/* Thống Kê và Bộ lọc */}
           <StatsAndFilters

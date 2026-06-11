@@ -1,5 +1,8 @@
 import express from "express";
 import taskRoute from "./routes/tasksRouters.js";
+import authRoute from "./routes/authRouters.js";
+import categoryRoute from "./routes/categoryRouters.js";
+import statsRoute from "./routes/statsRouters.js";
 import { connectDB } from "./config/db.js";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -19,7 +22,10 @@ if (process.env.NODE_ENV !== "production") {
   app.use(cors({ origin: "http://localhost:5173" }));
 }
 
+app.use("/api/auth", authRoute);
 app.use("/api/tasks", taskRoute);
+app.use("/api/categories", categoryRoute);
+app.use("/api/stats", statsRoute);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
